@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodejs-app-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nodejs-app
+  template:
+    metadata:
+      labels:
+        app: nodejs-app
+    spec:
+      containers:
+        - name: nodejs-app
+          # IMPORTANT: same name as your local Docker image
+          image: nodejs-app:latest
+          # This ensures Kubernetes won't try to pull from Docker Hub or elsewhere
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+
