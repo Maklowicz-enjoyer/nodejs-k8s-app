@@ -1,10 +1,12 @@
-const http = require('http');
+const express = require('express');
+const app = express();
 
-const server = http.createServer((req,res) => {
-    res.end("Hello from docker!");
+app.get('/', (req, res) => {
+  res.send('Hello, world!');
 });
 
+if (require.main === module) {
+  app.listen(3000, () => console.log('Server running'));
+}
 
-server.listen(3000, () => {
-    console.log("server running on port: 3000")
-});
+module.exports = app; // <-- export for testing

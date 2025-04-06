@@ -1,0 +1,75 @@
+name: CI pipeline and local deployment to k8s
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Install dependencies
+        run: |
+          cd src
+          npm install
+
+      - name: Run unit tests
+        run: |
+          cd src
+          npm test
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image
+        run: |
+          docker build -t nodejs-app:latest .
+
+      - name: Install kubectl
+        run: |
+          curl -LO https://dl.k8s.io/release/v1.29.0/bin/linux/amd64/kubectl
+          chmod +x kubectl
+          mv kubectl /usr/local/bin/
+
+      - name: Verify kubectl
+        run: kubectl version --client
+
+      - name: Set up Kubeconfig
+        run: echo "Using kubeconfig at /root/.kube/config"
+        env:
+          KUBECONFIG: /root/.kube/config
+
+      - name: Copy and update kubeconfig for correct port
+        run: |
+          cp /root/.kube/config /tmp/config
+          sed -i 's|http://localhost:8080|https://localhost:6443|g' /tmp/config
+        env:
+          KUBECONFIG: /root/.kube/config
+
+      - name: Debug kubeconfig
+        run: cat /tmp/config
+        env:
+          KUBECONFIG: /root/.kube/config
+
+      - name: Test K8s Connection
+        run: kubectl get nodes
+        env:
+          KUBECONFIG: /tmp/config
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f deployments/deployment.yaml --validate=false
+          kubectl apply -f deployments/service.yaml --validate=false
+        env:
+          KUBECONFIG: /tmp/config
