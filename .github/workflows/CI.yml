@@ -45,22 +45,19 @@ jobs:
       - name: Verify kubectl
         run: kubectl version --client
 
-      - name: Set up Kubeconfig
-        run: echo "Using kubeconfig at /root/.kube/config"
+      - name: Set up Kubeconfig from secret
+        run: |
+          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > /tmp/kubeconfig
         env:
-          KUBECONFIG: /root/.kube/config
+          KUBECONFIG: /tmp/kubeconfig
 
       - name: Copy and update kubeconfig for correct port
         run: |
-          cp /root/.kube/config /tmp/config
+          cp /tmp/kubeconfig /tmp/config
           sed -i 's|http://localhost:8080|https://localhost:6443|g' /tmp/config
-        env:
-          KUBECONFIG: /root/.kube/config
 
       - name: Debug kubeconfig
         run: cat /tmp/config
-        env:
-          KUBECONFIG: /root/.kube/config
 
       - name: Test K8s Connection
         run: kubectl get nodes
